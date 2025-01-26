@@ -3,7 +3,7 @@ local BookmarkList = require('bookmarks.bookmark_list')
 local storage = require('bookmarks.storage')
 local Navigation = require('bookmarks.navigation')
 local Decorations = require('bookmarks.decorations')
--- local Utils = require('bookmarks.utils')
+local Utils = require('bookmarks.utils')
 
 local buffer_bookmarks = {}
 
@@ -12,14 +12,13 @@ function Autocmds.get_buffer_bookmarks(bufnr)
 end
 
 local function load_buffer_bookmarks(bufnr)
-    local _, filename, _, project_root = Navigation.get_context()
-    -- Utils.debug_print(string.format("Loading bookmarks for buffer %d, file: %s", bufnr, filename))
-
-    if filename == "" or vim.bo[bufnr].buftype ~= "" then
-        -- Utils.debug_print(string.format("Skipping buffer %d (empty filename or special buffer)", bufnr))
+    if Utils.is_special_buff(bufnr) then
         buffer_bookmarks[bufnr] = nil
         return
     end
+
+    local _, filename, _, project_root = Navigation.get_context()
+    -- Utils.debug_print(string.format("Loading bookmarks for buffer %d, file: %s", bufnr, filename))
 
     local file_bookmarks = storage.get_file_bookmarks(filename, project_root)
     if not file_bookmarks then
@@ -39,16 +38,8 @@ local function load_buffer_bookmarks(bufnr)
 end
 
 function Autocmds.refresh_buffer(bufnr)
-    if not vim.api.nvim_buf_is_valid(bufnr) then
-        -- Utils.debug_print(string.format("Buffer %d is not valid", bufnr))
-        return
-    end
-
-    -- Utils.debug_print('Refresh buffer called')
-
-    -- Skip special buffers
-    if vim.bo[bufnr].buftype ~= "" then
-        -- Utils.debug_print(string.format("Skipping special buffer %d", bufnr))
+    if Utils.is_special_buff(bufnr) then
+        buffer_bookmarks[bufnr] = nil
         return
     end
 

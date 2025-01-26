@@ -1,5 +1,5 @@
 local Decorations = {}
--- local Utils = require('bookmarks.utils')
+local Utils = require('bookmarks.utils')
 
 Decorations.ns_id = vim.api.nvim_create_namespace("bookmarks_hl_ns")
 
@@ -37,9 +37,7 @@ function Decorations.setup(opts)
 end
 
 function Decorations.place_signs(bufnr, bookmarks)
-    -- Utils.debug_print(string.format("Placing signs for buffer %d", bufnr))
-    if not vim.api.nvim_buf_is_valid(bufnr) then
-        -- Utils.debug_print(string.format("Buffer %d is not valid", bufnr))
+    if Utils.is_special_buff(bufnr) then
         return
     end
 
@@ -76,7 +74,7 @@ function Decorations.place_signs(bufnr, bookmarks)
 end
 
 function Decorations.highlight_lines(bufnr, bookmarks)
-    if not vim.api.nvim_buf_is_valid(bufnr) then
+    if Utils.is_special_buff(bufnr) then
         return
     end
 
