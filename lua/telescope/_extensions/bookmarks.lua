@@ -3,15 +3,16 @@ if not has_telescope then
     error("This plugin requires nvim-telescope/telescope.nvim")
 end
 
-local pickers          = require("telescope.pickers")
-local finders          = require("telescope.finders")
-local conf             = require("telescope.config").values
-local actions          = require("telescope.actions")
-local action_state     = require("telescope.actions.state")
-local previewers       = require("telescope.previewers")
+local pickers      = require("telescope.pickers")
+local finders      = require("telescope.finders")
+local conf         = require("telescope.config").values
+local actions      = require("telescope.actions")
+local action_state = require("telescope.actions.state")
+local previewers   = require("telescope.previewers")
 
-local storage          = require("bookmarks.storage")
-local bookmarks_plugin = require("bookmarks")
+local storage      = require("bookmarks.storage")
+local navigation   = require("bookmarks.navigation")
+local autocmds     = require("bookmarks.autocmds")
 
 --------------------------------------------------------------------------------
 -- Load file for preview
@@ -23,9 +24,7 @@ local function lazy_load_file(bufnr, winid, filename, line)
         filename,
     })
 
-    -- Schedule the file reading for the next event loop iteration
     vim.schedule(function()
-        -- Create an async read operation
         local fd = vim.loop.fs_open(filename, "r", 438)
         if not fd then
             vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
@@ -35,7 +34,6 @@ local function lazy_load_file(bufnr, winid, filename, line)
             return
         end
 
-        -- Get file size
         local stat = vim.loop.fs_fstat(fd)
         if not stat then
             vim.loop.fs_close(fd)
@@ -46,11 +44,9 @@ local function lazy_load_file(bufnr, winid, filename, line)
             return
         end
 
-        -- Read the file content
         vim.loop.fs_read(fd, stat.size, 0, function(err, data)
             vim.loop.fs_close(fd)
 
-            -- Schedule the buffer updates to run in the main Neovim thread
             vim.schedule(function()
                 if err then
                     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
@@ -61,32 +57,23 @@ local function lazy_load_file(bufnr, winid, filename, line)
                     return
                 end
 
-                -- Check if buffer and window are still valid
                 if not (vim.api.nvim_buf_is_valid(bufnr) and vim.api.nvim_win_is_valid(winid)) then
                     return
                 end
 
-                -- Split the content into lines
                 local lines = vim.split(data, '\n', { plain = true })
-
-                -- Remove the last empty line if it exists
                 if lines[#lines] == '' then
                     table.remove(lines)
                 end
 
-                -- Set the buffer content
                 vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-
-                -- Set the cursor position
                 vim.api.nvim_win_set_cursor(winid, { line, 0 })
 
-                -- Set the filetype for syntax highlighting
                 local ft = vim.filetype.match({ filename = filename })
                 if ft then
                     vim.bo[bufnr].filetype = ft
                 end
 
-                -- Set display options
                 if vim.api.nvim_win_is_valid(winid) then
                     vim.api.nvim_set_option_value("number", true, { scope = "local", win = winid })
                     vim.api.nvim_set_option_value("relativenumber", false, { scope = "local", win = winid })
@@ -150,7 +137,7 @@ local function list_bookmarks(opts)
     pickers.new(opts, {
         prompt_title        = "Bookmarks",
         finder              = finders.new_table({
-            results = storage.get_bookmarks(),
+            results = storage.get_bookmarks(vim.fn.getcwd()),
             entry_maker = function(bookmark)
                 return {
                     value   = bookmark,
@@ -178,7 +165,7 @@ local function list_bookmarks(opts)
                 actions.close(prompt_bufnr)
                 local selection = action_state.get_selected_entry()
                 if selection and selection.value then
-                    bookmarks_plugin.jump_to_bookmark(
+                    navigation.jump_to_bookmark(
                         selection.value.filename,
                         selection.value.line
                     )
@@ -192,8 +179,15 @@ local function list_bookmarks(opts)
                 local selection = action_state.get_selected_entry()
 
                 if selection and selection.value then
-                    -- Remove the bookmark from storage
-                    storage.remove_bookmark(selection.value.filename, selection.value.line)
+                    local bmk = selection.value
+                    storage.remove_bookmark(bmk.filename, bmk.line, bmk.project_root)
+
+
+                    -- Refresh buffer decorations
+                    local bufnr = vim.fn.bufnr(bmk.filename)
+                    if bufnr ~= -1 then
+                        autocmds.refresh_buffer(bufnr)
+                    end
 
                     -- Remove the entry from the picker's results
                     current_picker:delete_selection(function(entry)

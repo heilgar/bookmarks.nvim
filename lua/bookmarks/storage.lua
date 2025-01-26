@@ -39,16 +39,17 @@ local function init_database()
             -- Define a table named "bookmarks"
             bookmarks = {
                 -- By setting "id = true", we get "INTEGER PRIMARY KEY"
-                id        = true,
+                id           = true,
 
                 -- The rest match your desired schema
-                filename  = "text",    -- TEXT NOT NULL
-                line_nr   = "integer", -- or "int"
-                content   = "text",
-                timestamp = "integer",
+                filename     = "text",    -- TEXT NOT NULL
+                line_nr      = "integer", -- or "int"
+                content      = "text",
+                timestamp    = "integer",
+                project_root = "text",
 
                 -- "ensure=true" => CREATE TABLE IF NOT EXISTS
-                ensure    = true,
+                ensure       = true,
             }
         }:open()
     end)
@@ -98,10 +99,11 @@ function M.add_bookmark(bookmark)
 
     local success, err = pcall(function()
         db.bookmarks:insert({
-            filename  = bookmark.filename,
-            line_nr   = bookmark.line,
-            content   = bookmark.content,
-            timestamp = bookmark.timestamp
+            filename     = bookmark.filename,
+            line_nr      = bookmark.line,
+            content      = bookmark.content,
+            timestamp    = bookmark.timestamp,
+            project_root = bookmark.project_root
         })
     end)
 
@@ -112,7 +114,7 @@ function M.add_bookmark(bookmark)
     return true
 end
 
-function M.remove_bookmark(filename, line)
+function M.remove_bookmark(filename, line, project_root)
     if not db or not db.bookmarks then
         vim.notify("Database not initialized", vim.log.levels.ERROR)
         return false
@@ -120,8 +122,9 @@ function M.remove_bookmark(filename, line)
 
     local success, err = pcall(function()
         db.bookmarks:remove({
-            filename = filename,
-            line_nr  = line
+            filename     = filename,
+            line_nr      = line,
+            project_root = project_root
         })
     end)
 
@@ -132,14 +135,19 @@ function M.remove_bookmark(filename, line)
     return true
 end
 
-function M.get_bookmarks()
+function M.get_bookmarks(project_root)
     if not db or not db.bookmarks then
         vim.notify("Database not initialized", vim.log.levels.ERROR)
         return {}
     end
 
     local success, results = pcall(function()
-        return db.bookmarks:get()
+        if project_root and project_root ~= "" then
+            local query = string.format("SELECT * FROM bookmarks WHERE project_root = '%s'", project_root)
+            return db:eval(query)
+        else
+            return db.bookmarks:get()
+        end
     end)
 
     if not success then
@@ -150,38 +158,45 @@ function M.get_bookmarks()
     local bookmarks = {}
     for _, row in ipairs(results) do
         table.insert(bookmarks, {
-            filename  = row.filename,
-            line      = row.line_nr,
-            content   = row.content,
-            timestamp = row.timestamp
+            filename     = row.filename,
+            line         = row.line_nr,
+            content      = row.content,
+            timestamp    = row.timestamp,
+            project_root = row.project_root
         })
     end
 
     return bookmarks
 end
 
-function M.get_file_bookmarks(filename)
+function M.get_file_bookmarks(filename, project_root)
     if not db or not db.bookmarks then
         vim.notify("Database not initialized", vim.log.levels.ERROR)
         return {}
     end
 
     local success, results = pcall(function()
-        return db.bookmarks:get({ filename })
+        local query = string.format(
+            "SELECT * FROM bookmarks WHERE filename = '%s' AND project_root = '%s'",
+            filename,
+            project_root
+        )
+        return db:eval(query)
     end)
 
-    if not success then
-        vim.notify("Failed to get bookmarks for file: " .. tostring(results), vim.log.levels.ERROR)
+    if not success or type(results) ~= "table" then
+        vim.notify("Failed to get bookmarks for file: " .. vim.inspect(results), vim.log.levels.ERROR)
         return {}
     end
 
     local bookmarks = {}
     for _, row in ipairs(results) do
         table.insert(bookmarks, {
-            filename  = row.filename,
-            line      = row.line_nr,
-            content   = row.content,
-            timestamp = row.timestamp
+            filename     = row.filename,
+            line         = row.line_nr,
+            content      = row.content,
+            timestamp    = row.timestamp,
+            project_root = row.project_root,
         })
     end
 
