@@ -185,7 +185,7 @@ function M.get_file_bookmarks(filename, project_root)
     end)
 
     if not success or type(results) ~= "table" then
-        vim.notify("Failed to get bookmarks for file: " .. vim.inspect(results), vim.log.levels.ERROR)
+        -- vim.notify("Failed to get bookmarks for file: " .. vim.inspect(results), vim.log.levels.ERROR)
         return {}
     end
 
