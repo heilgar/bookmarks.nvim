@@ -2,6 +2,8 @@
 
 A Neovim plugin for managing line bookmarks with Telescope integration and SQLite storage. Mark, organize, and quickly navigate between important locations in your codebase.
 
+![Search and Navigation](./search_preview.png)
+
 ## Features
 
 - 🔖 Add/remove bookmarks with visual indicators
@@ -160,4 +162,18 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 Thanks to:
 - [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) for the fuzzy finder interface
 - [sqlite.lua](https://github.com/kkharji/sqlite.lua) for SQLite integration
+
+## Screenshots
+
+### Bookmark Preview
+![Bookmark Preview](./preview.png)
+![Search and Navigation](./search_preview.png)
+
+Search for bookmarks by filename, content, or line number directly from the search prompt.
+The UI is designed for maximum readability with clear visual separation between entries.
+
+The bookmarks viewer features a vertical layout with:
+- File preview at the top, with syntax highlighting and a visual indicator for the bookmarked line
+- Bookmark list in the middle showing line numbers, filenames, and bookmark content
+- Search prompt at the bottom for quick filtering
 

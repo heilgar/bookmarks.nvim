@@ -79,21 +79,21 @@ local function lazy_load_file(bufnr, winid, filename, line)
                     vim.api.nvim_set_option_value("relativenumber", false, { scope = "local", win = winid })
                     vim.api.nvim_set_option_value("signcolumn", "yes", { scope = "local", win = winid })
                 end
-                
+
                 -- Create highlight namespace for the bookmark line
                 local ns_id = vim.api.nvim_create_namespace("bookmarks_preview_hl")
-                
+
                 -- Clear any existing highlights
                 vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
-                
+
                 -- Add highlight to the bookmarked line (zero-based line number)
                 local zero_based_line = line - 1
                 if zero_based_line >= 0 and zero_based_line < #lines then
                     -- Check if BookmarkHighlight exists, otherwise create a fallback
-                    local hl_exists = pcall(function() 
+                    local hl_exists = pcall(function()
                         return vim.api.nvim_get_hl(0, { name = "BookmarkHighlight" })
                     end)
-                    
+
                     if not hl_exists then
                         vim.api.nvim_set_hl(0, "BookmarkPreviewHL", {
                             bg = "#594d3e",
@@ -104,20 +104,20 @@ local function lazy_load_file(bufnr, winid, filename, line)
                     else
                         vim.api.nvim_buf_add_highlight(bufnr, ns_id, "BookmarkHighlight", zero_based_line, 0, -1)
                     end
-                    
+
                     -- Place the bookmark sign
                     -- First clear any existing signs
                     vim.fn.sign_unplace("bookmarks_preview_group", { buffer = bufnr })
-                    
+
                     -- Place the sign at the bookmarked line
                     -- Make sure BookmarkSign is defined, otherwise define it
                     local sign_defined = pcall(vim.fn.sign_getdefined, "BookmarkSign")
                     if not sign_defined or #vim.fn.sign_getdefined("BookmarkSign") == 0 then
                         -- Define bookmark sign highlight if it doesn't exist
-                        local hl_sign_exists = pcall(function() 
+                        local hl_sign_exists = pcall(function()
                             return vim.api.nvim_get_hl(0, { name = "BookmarkSignHighlight" })
                         end)
-                        
+
                         if not hl_sign_exists then
                             vim.api.nvim_set_hl(0, "BookmarkSignHighlight", {
                                 fg = "#FFE5B4",
@@ -125,14 +125,14 @@ local function lazy_load_file(bufnr, winid, filename, line)
                                 default = true,
                             })
                         end
-                        
+
                         vim.fn.sign_define("BookmarkSign", {
                             text = "",
                             texthl = "BookmarkSignHighlight",
                             linehl = "BookmarkHighlight",
                         })
                     end
-                    
+
                     vim.fn.sign_place(
                         0,
                         "bookmarks_preview_group",
@@ -186,12 +186,12 @@ local function format_bookmark(bookmark)
     local time_str = os.date("%Y-%m-%d %H:%M", bookmark.timestamp or 0)
     local line_num = bookmark.line or 1
     local content = bookmark.content or ""
-    
+
     -- Trim content if it's too long
     if #content > 60 then
         content = string.sub(content, 1, 57) .. "..."
     end
-    
+
     -- Format with clear visual structure
     return string.format(
         "%d:%s │ %s │ %s",
