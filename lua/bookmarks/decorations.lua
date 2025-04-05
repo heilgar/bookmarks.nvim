@@ -32,7 +32,7 @@ function Decorations.setup(opts)
         linehl = "BookmarkHighlight",
         hl_mode = "combine", -- or "replace"
     })
-    local hl_exists = vim.api.nvim_get_hl(0, { name = "BookmarkHighlight" })
+    -- local hl_exists = vim.api.nvim_get_hl(0, { name = "BookmarkHighlight" })
     -- Utils.debug_print("BookmarkHighlight definition:", vim.inspect(hl_exists))
 end
 
