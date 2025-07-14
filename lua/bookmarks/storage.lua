@@ -155,6 +155,10 @@ function M.get_bookmarks(project_root)
         return {}
     end
 
+    if type(results) ~= "table" then
+        return {}
+    end
+
     local bookmarks = {}
     for _, row in ipairs(results) do
         table.insert(bookmarks, {
