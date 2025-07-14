@@ -213,24 +213,39 @@ local function list_bookmarks(opts)
     opts = opts or {}
 
     local branch = nil
-    local prompt_title = "Bookmarks (global)"
+    local prompt_title = "📖 Bookmarks"
     if config.use_branch_specific then
         branch = utils.get_current_branch()
         if branch then
-            prompt_title = string.format("Bookmarks (branch: %s)", branch)
+            prompt_title = prompt_title .. string.format(" (branch: %s)", branch)
         else
-            prompt_title = "Bookmarks (branch: unknown)"
+            prompt_title = prompt_title .. " (branch: unknown)"
         end
+    end
+    
+    -- Add list information with visual indicators
+    local active_list = config.active_list or 'default'
+    if active_list == 'all' then
+        prompt_title = prompt_title .. " [🔍 all lists]"
+    elseif active_list == 'default' then
+        prompt_title = prompt_title .. " [📋 default]"
+    else
+        prompt_title = prompt_title .. string.format(" [📁 %s]", active_list)
     end
 
     pickers.new(opts, {
         prompt_title        = prompt_title,
         finder              = finders.new_table({
-            results = storage.get_bookmarks(vim.fn.getcwd(), branch),
+            results = storage.get_bookmarks(vim.fn.getcwd(), branch, config.active_list),
             entry_maker = function(bookmark)
+                local display = format_bookmark(bookmark)
+                -- Add list indicator if not in default list
+                if bookmark.list then
+                    display = "[" .. bookmark.list .. "] " .. display
+                end
                 return {
                     value   = bookmark,
-                    display = format_bookmark(bookmark),
+                    display = display,
                     ordinal = bookmark.filename .. (bookmark.content or ""),
                 }
             end,
@@ -270,7 +285,14 @@ local function list_bookmarks(opts)
 
                 if selection and selection.value then
                     local bmk = selection.value
-                    storage.remove_bookmark(bmk.filename, bmk.line, bmk.project_root)
+                    local config = init.get_config()
+                    local branch = nil
+                    if config.use_branch_specific then
+                        branch = utils.get_current_branch()
+                    end
+                    -- Use the bookmark's actual list, not the active list
+                    local list = bmk.list
+                    storage.remove_bookmark(bmk.filename, bmk.line, bmk.project_root, branch, list)
 
 
                     -- Refresh buffer decorations
@@ -297,11 +319,190 @@ local function list_bookmarks(opts)
 end
 
 --------------------------------------------------------------------------------
+-- Picker for bookmark lists (switch, create, rename, delete)
+--------------------------------------------------------------------------------
+local function list_lists(opts)
+    opts = opts or {}
+    local init = require('bookmarks')
+    local storage = require('bookmarks.storage')
+    local commands = require('bookmarks.commands')
+    local config = init.get_config()
+    local lists = storage.get_lists()
+    local active = config.active_list or 'default'
+    -- Insert 'all' as a special entry at the top
+    table.insert(lists, 1, { name = 'all' })
+    pickers.new(opts, {
+        prompt_title = '📁 Bookmark Lists',
+        finder = finders.new_table({
+            results = lists,
+            entry_maker = function(list)
+                local icon = "📁"
+                if list.name == 'all' then
+                    icon = "🔍"
+                elseif list.name == 'default' then
+                    icon = "📋"
+                end
+                
+                local display = icon .. " " .. list.name
+                if list.name == active then
+                    display = "⭐ " .. display .. " (active)"
+                end
+                
+                return {
+                    value = list.name,
+                    display = display,
+                    ordinal = list.name,
+                }
+            end,
+        }),
+        sorter = conf.generic_sorter(opts),
+        attach_mappings = function(prompt_bufnr, map)
+            local function get_selection()
+                local selection = action_state.get_selected_entry()
+                return selection and selection.value
+            end
+
+            -- Switch to list on <CR>
+            actions.select_default:replace(function()
+                actions.close(prompt_bufnr)
+                local name = get_selection()
+                commands.switch_list(name)
+            end)
+
+            -- Create new list: <C-n>
+            map('i', '<C-n>', function()
+                actions.close(prompt_bufnr)
+                vim.ui.input({ prompt = 'New list name: ' }, function(input)
+                    if input and input ~= '' then
+                        commands.create_list(input)
+                    end
+                end)
+            end)
+            map('n', '<C-n>', function()
+                actions.close(prompt_bufnr)
+                vim.ui.input({ prompt = 'New list name: ' }, function(input)
+                    if input and input ~= '' then
+                        commands.create_list(input)
+                    end
+                end)
+            end)
+
+            -- Rename list: <C-r>
+            map('i', '<C-r>', function()
+                local old = get_selection()
+                if old == 'default' or old == 'all' then
+                    vim.notify('Cannot rename default or all list', vim.log.levels.ERROR)
+                    return
+                end
+                actions.close(prompt_bufnr)
+                vim.ui.input({ prompt = 'Rename list to: ' }, function(new_name)
+                    if new_name and new_name ~= '' then
+                        commands.rename_list(old, new_name)
+                    end
+                end)
+            end)
+            map('n', '<C-r>', function()
+                local old = get_selection()
+                if old == 'default' or old == 'all' then
+                    vim.notify('Cannot rename default or all list', vim.log.levels.ERROR)
+                    return
+                end
+                actions.close(prompt_bufnr)
+                vim.ui.input({ prompt = 'Rename list to: ' }, function(new_name)
+                    if new_name and new_name ~= '' then
+                        commands.rename_list(old, new_name)
+                    end
+                end)
+            end)
+
+            -- Delete list: <C-d>
+            map('i', '<C-d>', function()
+                local name = get_selection()
+                if name == 'default' or name == 'all' then
+                    vim.notify('Cannot delete default or all list', vim.log.levels.ERROR)
+                    return
+                end
+                actions.close(prompt_bufnr)
+                vim.ui.input({ prompt = 'Delete list ' .. name .. '? (y/n): ' }, function(input)
+                    if input and input:lower() == 'y' then
+                        commands.delete_list(name)
+                    end
+                end)
+            end)
+            map('n', '<C-d>', function()
+                local name = get_selection()
+                if name == 'default' or name == 'all' then
+                    vim.notify('Cannot delete default or all list', vim.log.levels.ERROR)
+                    return
+                end
+                actions.close(prompt_bufnr)
+                vim.ui.input({ prompt = 'Delete list ' .. name .. '? (y/n): ' }, function(input)
+                    if input and input:lower() == 'y' then
+                        commands.delete_list(name)
+                    end
+                end)
+            end)
+
+            return true
+        end,
+        layout_strategy = 'vertical',
+        layout_config = {
+            height = 0.5,
+            width = 0.4,
+            prompt_position = 'top',
+        },
+    }):find()
+end
+
+--------------------------------------------------------------------------------
+-- Picker for bookmark status information
+--------------------------------------------------------------------------------
+local function show_status(opts)
+    opts = opts or {}
+    local init = require('bookmarks')
+    local config = init.get_config()
+    local utils = require('bookmarks.utils')
+    
+    local status_info = {
+        { label = "Active List", value = config.active_list or 'default' },
+        { label = "Branch Mode", value = config.use_branch_specific and "ON" or "OFF" },
+    }
+    
+    if config.use_branch_specific then
+        local branch = utils.get_current_branch()
+        table.insert(status_info, { label = "Current Branch", value = branch or "unknown" })
+    end
+    
+    pickers.new(opts, {
+        prompt_title = '📊 Bookmark Status',
+        finder = finders.new_table({
+            results = status_info,
+            entry_maker = function(item)
+                return {
+                    value = item,
+                    display = "📋 " .. item.label .. ": " .. item.value,
+                    ordinal = item.label,
+                }
+            end,
+        }),
+        sorter = conf.generic_sorter(opts),
+        layout_strategy = 'vertical',
+        layout_config = {
+            height = 0.4,
+            width = 0.6,
+            prompt_position = 'top',
+        },
+    }):find()
+end
+
+--------------------------------------------------------------------------------
 -- Register extension for Telescope
 --------------------------------------------------------------------------------
 return telescope.register_extension({
     exports = {
         list = list_bookmarks,
+        lists = list_lists,
+        status = show_status,
     },
 })
 
