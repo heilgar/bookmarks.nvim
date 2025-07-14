@@ -15,6 +15,8 @@ A Neovim plugin for managing line bookmarks with Telescope integration and SQLit
 - ⚡ Async file preview loading
 - 🧭 Next/Previous bookmark navigation within files
 - 🎯 Jump directly to bookmarked locations
+- 🗂️ Multiple bookmark lists: Organize bookmarks into named lists for different projects, features, or workflows
+- 🧩 List management UI: Create, switch, rename, and delete lists via commands or Telescope
 
 ## `bookmarks.nvim` vs. Native Vim Marks
 
@@ -30,6 +32,8 @@ While Vim's native marks (`ma`, `'a`) are useful for temporary navigation, `book
 | **Persistence** | Only global marks (`A-Z`) persist across sessions   | **All bookmarks are persistent** by default                                                               |
 | **Management**  | Manual, must remember mark letters                  | **Centralized API**: Add, remove, list, and navigate bookmarks                                            |
 | **Dependencies**| None (core feature)                                 | Requires [sqlite.lua](https://github.com/kkharji/sqlite.lua) and [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) |
+| **Multiple Lists** | No                                              | **Yes**: Organize bookmarks into named lists, switch between them                                         |
+| **List Management UI** | No                                         | **Yes**: Create, switch, rename, delete lists via commands or Telescope                                   |
 
 ## Requirements
 
@@ -69,6 +73,7 @@ Using `lazy.nvim`:
         { "<leader>bj", desc = "Jump to Next Bookmark" },
         { "<leader>bk", desc = "Jump to Previous Bookmark" },
         { "<leader>bl", "<cmd>Bookmarks<cr>", desc = "List Bookmarks" },
+        { "<leader>bs", desc = "Switch Bookmark List" },
     },
 }
 ```
@@ -104,14 +109,30 @@ require("bookmarks").setup({
 - `:Bookmarks` - Open Telescope to browse bookmarks
 - `:BookmarksToggleBranchScope` - Toggle branch-specific bookmarks on/off
 
+### List Management
+
+- `:BookmarkListCreate <name>` — Create a new bookmark list
+- `:BookmarkListSwitch <name|global>` — Switch to a list (or global)
+- `:BookmarkListRename <old> <new>` — Rename a list
+- `:BookmarkListDelete <name>` — Delete a list (bookmarks reassigned to global)
+- `:BookmarkListShow` — Show all lists, with the active one marked
+
+#### Telescope List Management
+- `<leader>bs` — Open Telescope picker to switch, create, rename, or delete lists interactively
+- `:Telescope bookmarks lists` — Fuzzy manage lists (switch, create, rename, delete)
+    - `<CR>`: Switch to list
+    - `<C-n>`: Create new list
+    - `<C-r>`: Rename list
+    - `<C-d>`: Delete list
+
 ### Default Keymaps
 
 - `<leader>ba` - Add bookmark
 - `<leader>br` - Remove bookmark
 - `<leader>bj` - Jump to next bookmark in file
 - `<leader>bk` - Jump to previous bookmark in file
-- `<leader>bl` - List bookmarks (opens Telescope)
-- `<leader>bt` - Toggle branch-specific bookmarks on/off
+- `<leader>bl` - List bookmarks (opens Telescope, filtered by active list)
+- `<leader>bs` - Switch bookmark list (Telescope picker)
 
 Inside Telescope bookmarks view:
 - `<CR>` - Jump to selected bookmark
