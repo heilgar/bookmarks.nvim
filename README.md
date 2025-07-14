@@ -120,10 +120,10 @@ Inside Telescope bookmarks view:
 To disable default keymaps, set `default_mappings = false` in setup and define your own:
 
 ```lua
-vim.keymap.set('n', '<your-keymap>', require('bookmarks').add_bookmark)
-vim.keymap.set('n', '<your-keymap>', require('bookmarks').remove_bookmark)
-vim.keymap.set('n', '<your-keymap>', require('bookmarks').jump_to_next)
-vim.keymap.set('n', '<your-keymap>', require('bookmarks').jump_to_prev)
+vim.keymap.set('n', '<your-keymap>', require('bookmarks.commands').add_bookmark)
+vim.keymap.set('n', '<your-keymap>', require('bookmarks.commands').remove_bookmark)
+vim.keymap.set('n', '<your-keymap>', require('bookmarks.navigation').jump_to_next)
+vim.keymap.set('n', '<your-keymap>', require('bookmarks.navigation').jump_to_prev)
 vim.keymap.set('n', '<your-keymap>', require('telescope').extensions.bookmarks.list)
 ```
 
