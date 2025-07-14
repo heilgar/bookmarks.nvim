@@ -213,7 +213,7 @@ local function list_bookmarks(opts)
     opts = opts or {}
 
     local branch = nil
-    local prompt_title = "Bookmarks (global)"
+    local prompt_title = "Bookmarks (default)"
     if config.use_branch_specific then
         branch = utils.get_current_branch()
         if branch then
@@ -222,11 +222,16 @@ local function list_bookmarks(opts)
             prompt_title = "Bookmarks (branch: unknown)"
         end
     end
+    if config.active_list == 'all' then
+        prompt_title = prompt_title .. " [list: all]"
+    elseif config.active_list then
+        prompt_title = prompt_title .. string.format(" [list: %s]", config.active_list)
+    end
 
     pickers.new(opts, {
         prompt_title        = prompt_title,
         finder              = finders.new_table({
-            results = storage.get_bookmarks(vim.fn.getcwd(), branch),
+            results = storage.get_bookmarks(vim.fn.getcwd(), branch, config.active_list),
             entry_maker = function(bookmark)
                 return {
                     value   = bookmark,
@@ -297,11 +302,136 @@ local function list_bookmarks(opts)
 end
 
 --------------------------------------------------------------------------------
+-- Picker for bookmark lists (switch, create, rename, delete)
+--------------------------------------------------------------------------------
+local function list_lists(opts)
+    opts = opts or {}
+    local init = require('bookmarks')
+    local storage = require('bookmarks.storage')
+    local commands = require('bookmarks.commands')
+    local config = init.get_config()
+    local lists = storage.get_lists()
+    local active = config.active_list or 'default'
+    -- Insert 'all' as a special entry at the top
+    table.insert(lists, 1, { name = 'all' })
+    pickers.new(opts, {
+        prompt_title = 'Bookmark Lists',
+        finder = finders.new_table({
+            results = lists,
+            entry_maker = function(list)
+                return {
+                    value = list.name,
+                    display = (list.name == active and ('* ' .. list.name .. ' (active)')) or ('  ' .. list.name),
+                    ordinal = list.name,
+                }
+            end,
+        }),
+        sorter = conf.generic_sorter(opts),
+        attach_mappings = function(prompt_bufnr, map)
+            local function get_selection()
+                local selection = action_state.get_selected_entry()
+                return selection and selection.value
+            end
+
+            -- Switch to list on <CR>
+            actions.select_default:replace(function()
+                actions.close(prompt_bufnr)
+                local name = get_selection()
+                commands.switch_list(name)
+            end)
+
+            -- Create new list: <C-n>
+            map('i', '<C-n>', function()
+                actions.close(prompt_bufnr)
+                vim.ui.input({ prompt = 'New list name: ' }, function(input)
+                    if input and input ~= '' then
+                        commands.create_list(input)
+                    end
+                end)
+            end)
+            map('n', '<C-n>', function()
+                actions.close(prompt_bufnr)
+                vim.ui.input({ prompt = 'New list name: ' }, function(input)
+                    if input and input ~= '' then
+                        commands.create_list(input)
+                    end
+                end)
+            end)
+
+            -- Rename list: <C-r>
+            map('i', '<C-r>', function()
+                local old = get_selection()
+                if old == 'default' or old == 'all' then
+                    vim.notify('Cannot rename default or all list', vim.log.levels.ERROR)
+                    return
+                end
+                actions.close(prompt_bufnr)
+                vim.ui.input({ prompt = 'Rename list to: ' }, function(new_name)
+                    if new_name and new_name ~= '' then
+                        commands.rename_list(old, new_name)
+                    end
+                end)
+            end)
+            map('n', '<C-r>', function()
+                local old = get_selection()
+                if old == 'default' or old == 'all' then
+                    vim.notify('Cannot rename default or all list', vim.log.levels.ERROR)
+                    return
+                end
+                actions.close(prompt_bufnr)
+                vim.ui.input({ prompt = 'Rename list to: ' }, function(new_name)
+                    if new_name and new_name ~= '' then
+                        commands.rename_list(old, new_name)
+                    end
+                end)
+            end)
+
+            -- Delete list: <C-d>
+            map('i', '<C-d>', function()
+                local name = get_selection()
+                if name == 'default' or name == 'all' then
+                    vim.notify('Cannot delete default or all list', vim.log.levels.ERROR)
+                    return
+                end
+                actions.close(prompt_bufnr)
+                vim.ui.input({ prompt = 'Delete list ' .. name .. '? (y/n): ' }, function(input)
+                    if input and input:lower() == 'y' then
+                        commands.delete_list(name)
+                    end
+                end)
+            end)
+            map('n', '<C-d>', function()
+                local name = get_selection()
+                if name == 'default' or name == 'all' then
+                    vim.notify('Cannot delete default or all list', vim.log.levels.ERROR)
+                    return
+                end
+                actions.close(prompt_bufnr)
+                vim.ui.input({ prompt = 'Delete list ' .. name .. '? (y/n): ' }, function(input)
+                    if input and input:lower() == 'y' then
+                        commands.delete_list(name)
+                    end
+                end)
+            end)
+
+            return true
+        end,
+        layout_strategy = 'vertical',
+        layout_config = {
+            height = 0.5,
+            width = 0.4,
+            prompt_position = 'top',
+        },
+    }):find()
+end
+
+--------------------------------------------------------------------------------
 -- Register extension for Telescope
 --------------------------------------------------------------------------------
 return telescope.register_extension({
     exports = {
         list = list_bookmarks,
+        lists = list_lists,
     },
 })
 
