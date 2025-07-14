@@ -301,6 +301,7 @@ end
 --------------------------------------------------------------------------------
 return telescope.register_extension({
     exports = {
+        bookmarks = list_bookmarks,
         list = list_bookmarks,
     },
 })
