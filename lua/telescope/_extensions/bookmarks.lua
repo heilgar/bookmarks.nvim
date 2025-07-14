@@ -14,6 +14,9 @@ local storage      = require("bookmarks.storage")
 local navigation   = require("bookmarks.navigation")
 local autocmds     = require("bookmarks.autocmds")
 
+local config = require('bookmarks').get_config()
+local utils = require('bookmarks.utils')
+
 --------------------------------------------------------------------------------
 -- Load file for preview
 --------------------------------------------------------------------------------
@@ -209,10 +212,21 @@ end
 local function list_bookmarks(opts)
     opts = opts or {}
 
+    local branch = nil
+    local prompt_title = "Bookmarks (global)"
+    if config.use_branch_specific then
+        branch = utils.get_current_branch()
+        if branch then
+            prompt_title = string.format("Bookmarks (branch: %s)", branch)
+        else
+            prompt_title = "Bookmarks (branch: unknown)"
+        end
+    end
+
     pickers.new(opts, {
-        prompt_title        = "Bookmarks",
+        prompt_title        = prompt_title,
         finder              = finders.new_table({
-            results = storage.get_bookmarks(vim.fn.getcwd()),
+            results = storage.get_bookmarks(vim.fn.getcwd(), branch),
             entry_maker = function(bookmark)
                 return {
                     value   = bookmark,
