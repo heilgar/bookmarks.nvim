@@ -16,6 +16,20 @@ A Neovim plugin for managing line bookmarks with Telescope integration and SQLit
 - 🧭 Next/Previous bookmark navigation within files
 - 🎯 Jump directly to bookmarked locations
 
+## `bookmarks.nvim` vs. Native Vim Marks
+
+While Vim's native marks (`ma`, `'a`) are useful for temporary navigation, `bookmarks.nvim` provides a more robust, feature-rich, and persistent bookmarking system.
+
+| Feature         | Native Vim Marks                                   | `bookmarks.nvim`                                                                                          |
+|-----------------|----------------------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| **Storage**     | Plain text (`.viminfo`/`shada`)                    | **SQLite Database** for structured, queryable, and persistent storage                                     |
+| **Scope**       | Local (per-file) or Global (cross-file)            | **Project-aware**: Bookmarks are tied to a project root                                                   |
+| **Data**        | File path, line, and column only                    | **Rich metadata**: line content, timestamp, project info                                                  |
+| **UI**          | Command-based (`:marks`)                            | **Interactive UI**: Telescope integration for fuzzy search, browsing, and live previews                   |
+| **Persistence** | Only global marks (`A-Z`) persist across sessions   | **All bookmarks are persistent** by default                                                               |
+| **Management**  | Manual, must remember mark letters                  | **Centralized API**: Add, remove, list, and navigate bookmarks                                            |
+| **Dependencies**| None (core feature)                                 | Requires [sqlite.lua](https://github.com/kkharji/sqlite.lua) and [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) |
+
 ## Requirements
 
 - Neovim >= 0.7.0
