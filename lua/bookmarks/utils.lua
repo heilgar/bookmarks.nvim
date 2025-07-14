@@ -24,5 +24,28 @@ function Utils.is_special_buff(bufnr)
     end
 end
 
+local function handle_git_command(command)
+    local handle = io.popen(command .. " 2>/dev/null")
+    if handle then
+        local result = handle:read("*l")
+        handle:close()
+        return result and result == "true"
+    end
+end
+
+function Utils.is_git_repo()
+    return handle_git_command("git rev-parse --is-inside-work-tree")
+end
+
+function Utils.get_current_branch()
+    local handle = io.popen("git branch --show-current -i 2>/dev/null")
+    if handle then
+        local branch = handle:read("*l")
+        handle:close()
+        return branch and branch ~= "" and branch or nil
+    end
+    return nil
+end
+
 return Utils
 

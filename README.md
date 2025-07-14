@@ -24,6 +24,7 @@ While Vim's native marks (`ma`, `'a`) are useful for temporary navigation, `book
 |-----------------|----------------------------------------------------|-----------------------------------------------------------------------------------------------------------|
 | **Storage**     | Plain text (`.viminfo`/`shada`)                    | **SQLite Database** for structured, queryable, and persistent storage                                     |
 | **Scope**       | Local (per-file) or Global (cross-file)            | **Project-aware**: Bookmarks are tied to a project root                                                   |
+| **Branch-specific** | No                                              | **Yes**: Bookmarks can be isolated per Git branch and toggled at runtime                                  |
 | **Data**        | File path, line, and column only                    | **Rich metadata**: line content, timestamp, project info                                                  |
 | **UI**          | Command-based (`:marks`)                            | **Interactive UI**: Telescope integration for fuzzy search, browsing, and live previews                   |
 | **Persistence** | Only global marks (`A-Z`) persist across sessions   | **All bookmarks are persistent** by default                                                               |
@@ -79,6 +80,9 @@ require("bookmarks").setup({
     -- Storage configuration
     db_path = vim.fn.stdpath('data') .. '/bookmarks.db',  -- Path to SQLite database
 
+    -- Branch configuration
+    use_branch_specific = false,  -- Enable/disable branch-specific bookmarks (can be toggled at runtime)
+
     -- Keymaps configuration
     default_mappings = true,  -- Set to false to disable default keymaps
 
@@ -98,6 +102,7 @@ require("bookmarks").setup({
 - `:BookmarkAdd` - Add bookmark at current line
 - `:BookmarkRemove` - Remove bookmark at current line
 - `:Bookmarks` - Open Telescope to browse bookmarks
+- `:BookmarksToggleBranchScope` - Toggle branch-specific bookmarks on/off
 
 ### Default Keymaps
 
@@ -106,6 +111,7 @@ require("bookmarks").setup({
 - `<leader>bj` - Jump to next bookmark in file
 - `<leader>bk` - Jump to previous bookmark in file
 - `<leader>bl` - List bookmarks (opens Telescope)
+- `<leader>bt` - Toggle branch-specific bookmarks on/off
 
 Inside Telescope bookmarks view:
 - `<CR>` - Jump to selected bookmark
@@ -190,4 +196,46 @@ The bookmarks viewer features a vertical layout with:
 - File preview at the top, with syntax highlighting and a visual indicator for the bookmarked line
 - Bookmark list in the middle showing line numbers, filenames, and bookmark content
 - Search prompt at the bottom for quick filtering
+
+## Branch-Specific Bookmarks
+
+When `use_branch_specific` is enabled, bookmarks are stored and shown per Git branch. This means:
+- You only see bookmarks for the current branch in both buffer and Telescope views.
+- Bookmarks added on one branch are not visible on another branch.
+- When toggled off, all bookmarks (regardless of branch) are shown.
+- You can toggle this at runtime with `:BookmarksToggleBranchScope` or `<leader>bt`.
+
+This is useful for workflows where you want to keep bookmarks isolated to specific features or tasks per branch.
+
+## Statusline Helper
+
+You can show the current bookmarks scope (global or branch) in your statusline using the built-in helper:
+
+### Vanilla Neovim
+
+Add this to your `init.lua`:
+
+```lua
+vim.o.statusline = "%f %h%m%r %=%{v:lua.require('bookmarks').status()}"
+```
+
+### lualine.nvim
+
+If you use [lualine.nvim](https://github.com/nvim-lualine/lualine.nvim):
+
+```lua
+require('lualine').setup {
+  sections = {
+    lualine_c = {
+      'filename',
+      { function() return require('bookmarks').status() end }
+    },
+    -- ... other sections ...
+  }
+}
+```
+
+This will show `Bookmarks: branch=my-feature` or `Bookmarks: global` in your statusline, depending on the current mode.
+
+---
 

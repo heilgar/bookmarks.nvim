@@ -18,11 +18,13 @@ local function load_buffer_bookmarks(bufnr)
     end
 
     local _, filename, _, project_root = Navigation.get_context()
-    -- Utils.debug_print(string.format("Loading bookmarks for buffer %d, file: %s", bufnr, filename))
-
-    local file_bookmarks = storage.get_file_bookmarks(filename, project_root)
+    local config = require('bookmarks').get_config()
+    local branch = nil
+    if config.use_branch_specific then
+        branch = Utils.get_current_branch()
+    end
+    local file_bookmarks = storage.get_file_bookmarks(filename, project_root, branch)
     if not file_bookmarks then
-        -- Utils.debug_print(string.format("No bookmarks found for buffer %d", bufnr))
         buffer_bookmarks[bufnr] = nil
         return
     end
@@ -33,7 +35,6 @@ local function load_buffer_bookmarks(bufnr)
     end
 
     buffer_bookmarks[bufnr] = list
-    -- Utils.debug_print(string.format("Loaded %d bookmarks for buffer %d", #list.items, bufnr))
     return list
 end
 
@@ -52,6 +53,14 @@ function Autocmds.refresh_buffer(bufnr)
                 Decorations.highlight_lines(bufnr, list)
             end
         end, 100) -- Defer refresh to ensure signs stay
+    end
+end
+
+function Autocmds.refresh_all_buffers()
+    for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_is_loaded(bufnr) then
+            Autocmds.refresh_buffer(bufnr)
+        end
     end
 end
 
