@@ -16,6 +16,13 @@ local autocmds     = require("bookmarks.autocmds")
 
 local config = require('bookmarks').get_config()
 local utils = require('bookmarks.utils')
+local setup_opts = {
+    pickers = {
+      list = {},
+      lists = {},
+      status = {}
+    }
+}
 
 --------------------------------------------------------------------------------
 -- Load file for preview
@@ -210,7 +217,7 @@ end
 -- The picker that displays bookmarks on the left and the file preview on the right
 --------------------------------------------------------------------------------
 local function list_bookmarks(opts)
-    opts = opts or {}
+    opts = vim.tbl_extend("force", setup_opts["pickers"]["list"], opts or {})
 
     local branch = nil
     local prompt_title = "📖 Bookmarks"
@@ -322,7 +329,7 @@ end
 -- Picker for bookmark lists (switch, create, rename, delete)
 --------------------------------------------------------------------------------
 local function list_lists(opts)
-    opts = opts or {}
+    opts = vim.tbl_extend("force", setup_opts["pickers"]["lists"], opts or {})
     local init = require('bookmarks')
     local storage = require('bookmarks.storage')
     local commands = require('bookmarks.commands')
@@ -458,7 +465,7 @@ end
 -- Picker for bookmark status information
 --------------------------------------------------------------------------------
 local function show_status(opts)
-    opts = opts or {}
+    opts = vim.tbl_extend("force", setup_opts["pickers"]["status"], opts or {})
     local init = require('bookmarks')
     local config = init.get_config()
     local utils = require('bookmarks.utils')
@@ -499,6 +506,9 @@ end
 -- Register extension for Telescope
 --------------------------------------------------------------------------------
 return telescope.register_extension({
+    setup = function(ext_config)
+      setup_opts = vim.tbl_deep_extend("force", setup_opts, ext_config)
+    end,
     exports = {
         bookmarks = list_bookmarks,
         list = list_bookmarks,
