@@ -292,6 +292,7 @@ local function list_bookmarks(opts)
 
                 if selection and selection.value then
                     local bmk = selection.value
+                    local init = require('bookmarks')
                     local config = init.get_config()
                     local branch = nil
                     if config.use_branch_specific then
