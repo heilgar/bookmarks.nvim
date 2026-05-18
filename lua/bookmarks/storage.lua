@@ -115,6 +115,8 @@ local function init_database()
                 content      = "text",
                 timestamp    = "integer",
                 project_root = "text",
+                branch       = "text",
+                list         = "text",
 
                 -- "ensure=true" => CREATE TABLE IF NOT EXISTS
                 ensure       = true,
